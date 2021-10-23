@@ -1,14 +1,20 @@
 using Castle.MicroKernel.Registration;
 using Castle.Windsor;
 using Castle.Windsor.Installer;
+using Microsoft.AspNet.OData.Builder;
+using Microsoft.AspNet.OData.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.OData.Edm;
+using Sample.Data.DbContexts;
+using Sample.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +39,11 @@ namespace ProjectODataServer
             services.AddSingleton(Container);
             services.AddOptions();
             services.AddControllers();
+            services.AddDbContext<SampleDataDbContext>(c => c
+            .EnableSensitiveDataLogging()
+            .EnableDetailedErrors()
+            .UseSqlite("Data Source=SampleData.db"));
+            services.AddOData();
             Container.Register(
                 Component.For<IConfiguration>()
                 .Instance(Configuration)
@@ -65,7 +76,16 @@ namespace ProjectODataServer
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.Select().Filter().OrderBy().Count().MaxTop(10).Expand();
+                endpoints.MapODataRoute("odata", "odata", GetEdmModel());
             });
+        }
+        private IEdmModel GetEdmModel()
+        {
+            var odataBuilder = new ODataConventionModelBuilder();
+            odataBuilder.EntitySet<Category>("Category");
+            odataBuilder.EntitySet<Product>("Product");
+            return odataBuilder.GetEdmModel();
         }
     }
 }
