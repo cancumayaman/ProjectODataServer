@@ -72,7 +72,7 @@ namespace ProjectODataServer.Controllers.OData
 
             var tracker = _db.ChangeTracker.Entries();
 
-            if (tracker.Any(x => x.State == EntityState.Modified))
+            if (tracker.Any(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted))
                 _db.SaveChanges();
 
             return NoContent();

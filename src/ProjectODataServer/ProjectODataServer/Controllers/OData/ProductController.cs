@@ -36,6 +36,9 @@ namespace ProjectODataServer.Controllers.OData
         [HttpPost]
         public IActionResult Post([FromBody] Product item)
         {
+            if (item == null) return NotFound("Product item not found");
+            if (item.CategoryId == 0 && item.Category == null) return NotFound("Category information not found");
+
             _db.Set<Product>().Add(item);
             _db.SaveChanges();
             return StatusCode(201, item);
@@ -43,14 +46,30 @@ namespace ProjectODataServer.Controllers.OData
         [HttpPut]
         public IActionResult Put([FromODataUri] int key, [FromBody] Product item)
         {
+            if (item == null) return NotFound("Product item not found");
+            if (item.CategoryId == 0 && item.Category == null) return NotFound("Category information not found");
+
             var entity = _db.Set<Product>().Find(key);
 
             if (entity == null) return NotFound();
 
             if (entity.Name != item.Name) entity.Name = item.Name;
+            if (entity.CategoryId != 0)
+            {
+                if (entity.CategoryId != item.CategoryId) entity.CategoryId = item.CategoryId;
+            }
+            else
+            {
+                if (item.Category != null)
+                {
+                    entity.CategoryId = 0;
+                    entity.Category = item.Category;
+                }
+            }
+
 
             var tracker = _db.ChangeTracker.Entries();
-            if (tracker.Any(x => x.State == EntityState.Modified))
+            if (tracker.Any(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted))
                 _db.SaveChanges();
 
             return NoContent();
@@ -67,7 +86,7 @@ namespace ProjectODataServer.Controllers.OData
 
             var tracker = _db.ChangeTracker.Entries();
 
-            if (tracker.Any(x => x.State == EntityState.Modified))
+            if (tracker.Any(x => x.State == EntityState.Modified || x.State == EntityState.Added || x.State == EntityState.Deleted))
                 _db.SaveChanges();
 
             return NoContent();
