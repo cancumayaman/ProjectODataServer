@@ -7,6 +7,7 @@ using Sample.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace ProjectODataServer.Controllers.OData
@@ -24,14 +25,69 @@ namespace ProjectODataServer.Controllers.OData
             return _db.Categories;
         }
         [EnableQuery]
-        public SingleResult<Category> Get(int key, ODataQueryOptions<Product> options)
+        public IActionResult Get(int key, ODataQueryOptions<Product> options)
         {
-            return SingleResult<Category>.Create(_db.Set<Category>().Where(x=>x.Id==key));
+            if (!_db.Set<Category>().Any(x => x.Id == key)) return NotFound();
+
+            return Ok(SingleResult<Category>.Create(_db.Set<Category>().Where(x=>x.Id==key)));
         }
         [EnableQuery]
-        public IQueryable<Product> GetProducts(int key,ODataQueryOptions<Product> options)
+        public IActionResult GetProducts(int key,ODataQueryOptions<Product> options)
         {
-            return _db.Set<Product>().Where(x => x.CategoryId == key);
+            if (!_db.Set<Category>().Any(x => x.Id == key)) return NotFound();
+
+            return Ok(_db.Set<Product>().Where(x => x.CategoryId == key));
         }
+        [HttpPost]
+        public IActionResult Post([FromBody] Category item)
+        {
+            _db.Set<Category>().Add(item);
+            _db.SaveChanges();
+            return StatusCode(201, item);
+        }
+        [HttpPut]
+        public IActionResult Put([FromODataUri] int key,[FromBody] Category item)
+        {
+            var entity = _db.Set<Category>().Find(key);
+
+            if (entity == null) return NotFound();
+
+            if (entity.Name != item.Name) entity.Name = item.Name;
+
+            var tracker = _db.ChangeTracker.Entries();
+            if (tracker.Any(x => x.State == EntityState.Modified))
+                _db.SaveChanges();
+
+            return NoContent();
+        }
+
+        [HttpPatch]
+        public IActionResult Patch([FromODataUri] int key, Delta<Category> item)
+        {
+            var entity = _db.Set<Category>().Find(key);
+
+            if (entity == null) return NotFound();
+
+            item.Patch(entity);
+
+            var tracker = _db.ChangeTracker.Entries();
+
+            if (tracker.Any(x => x.State == EntityState.Modified))
+                _db.SaveChanges();
+
+            return NoContent();
+        }
+
+        [HttpDelete]
+        public IActionResult Delete([FromODataUri] int key)
+        {
+            var entity = _db.Set<Category>().Find(key);
+            if (entity == null) return NotFound();
+
+            _db.Set<Category>().Remove(entity);
+            _db.SaveChanges();
+            return Ok();
+        }
+
     }
 }
