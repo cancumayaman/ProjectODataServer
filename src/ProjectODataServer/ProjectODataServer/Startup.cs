@@ -48,8 +48,8 @@ namespace ProjectODataServer
         {
             services.AddSingleton(Container);
             services.AddOptions();
-            services.AddControllers()
-            .ConfigureApplicationPartManager(m => m.FeatureProviders.Add(new GenericTypeControllerFeatureProvider()));
+            services.AddControllers();
+          //  .ConfigureApplicationPartManager(m => m.FeatureProviders.Add(new GenericTypeControllerFeatureProvider()));
             services.AddDbContext<SampleDataDbContext>(c => c
             .EnableSensitiveDataLogging()
             .EnableDetailedErrors()
